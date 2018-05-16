@@ -2,10 +2,6 @@
 # Copyright 1999-2016 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-SYNCTHING_USER=${SVCNAME##*.}
-if [ -n "${SYNCTHING_USER}" ] && [ "${SVCNAME}" != "syncthing" ]; then
-	pidfile="/run/syncthing.${SYNCTHING_USER}.pid"
-fi
 SYNCTHING_IONICE=${SYNCTHING_IONICE:-0}
 SYNCTHING_NICE=${SYNCTHING_NICE:-0}
 
@@ -13,20 +9,18 @@ name="Syncthing"
 description="Open Source Continuous File Synchronization"
 
 command="/usr/bin/syncthing"
-command_args="-no-browser $SYNCTHING_OPTS" # TODO
+command_args="-no-browser $SYNCTHING_OPTS"
 command_background="true"
 
-start_stop_daemon_args="--make-pidfile \
-	--user ${SYNCTHING_USER} \
-	--ionice ${SYNCTHING_IONICE} \
-	--nicelevel ${SYNCTHING_NICE}"
+start_stop_daemon_args="-t"
 
 depend() {
 	need localmount net
 }
 
 start_pre() {
-	if [ -z "${SYNCTHING_USER}" ] || ! id -u "${SYNCTHING_USER}" &> /dev/null
+	SYNCTHING_USER="$(id -un ${SVCNAME##*.} 2>/dev/null)"
+	if ! [ $? -eq 0 ] || [ -z "${SYNCTHING_USER}" ]
 	then
 		eerror "The init script must be configured for a user."
 		eerror "To run syncthing as a user, symlink the init script to include the username."
@@ -36,4 +30,11 @@ start_pre() {
 		eerror "	$ ln -s syncthing syncthing.\$USER"
 		return 1;
 	fi
+	pidfile="/run/syncthing.${SYNCTHING_USER}.pid"
+	start_stop_daemon_args="
+		--make-pidfile
+		--user ${SYNCTHING_USER}
+		--ionice ${SYNCTHING_IONICE}
+		--nicelevel ${SYNCTHING_NICE}
+	"
 }
