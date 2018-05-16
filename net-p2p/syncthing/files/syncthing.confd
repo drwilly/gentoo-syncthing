@@ -1,0 +1,4 @@
+# /etc/conf.d/syncthing: config file for /etc/init.d/syncthing
+
+# Extra options for syncthing
+#SYNCTHING_OPTS=""
